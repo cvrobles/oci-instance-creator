@@ -8,13 +8,13 @@ jobs:
   run-creator:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Official Oracle CLI
+      - name: Force Install and Execute OCI Commands Natively
         run: |
-          bash -c "$(curl -L https://githubusercontent.com)" -- --accept-all-defaults
-          echo "/home/runner/bin" >> $GITHUB_PATH
-
-      - name: Initialize OCI Credentials
-        run: |
+          # 1. Download and install Oracle CLI into the local path immediately
+          bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
+          export PATH="/home/runner/bin:$PATH"
+          
+          # 2. Build the secure connection folder
           mkdir -p ~/.oci
           echo "${{ secrets.OCI_KEY_FILE }}" > ~/.oci/oci_api_key.pem
           chmod 600 ~/.oci/oci_api_key.pem
@@ -28,16 +28,14 @@ jobs:
           key_file=~/.oci/oci_api_key.pem
           EOF
           chmod 600 ~/.oci/config
-
-      - name: Execute Launch Command
-        run: |
-          # We gather your region's exact prefix code dynamically and append your target domain cleanly
-          REGION_PREFIX=$(oci iam availability-domain list --query "data[0].name" --raw-output | cut -d':' -f1-2)
-          TARGET_AD="${REGION_PREFIX}:AD-1"
           
+          # 3. Target the data center region domain
+          REGION_PREFIX=$(oci iam availability-domain list --query "data.name" --raw-output | head -n 1)
+          
+          # 4. Trigger the immediate server build request
           oci compute instance launch \
             --compartment-id "${{ secrets.OCI_COMPARTMENT_OCID }}" \
-            --availability-domain "$TARGET_AD" \
+            --availability-domain "$REGION_PREFIX" \
             --shape "VM.Standard.A1.Flex" \
             --shape-config '{"ocpus":2,"memoryInGBs":12}' \
             --subnet-id "${{ secrets.OCI_SUBNET_OCID }}" \
