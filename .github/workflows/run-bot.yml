@@ -10,7 +10,6 @@ jobs:
     steps:
       - name: Install Official Oracle CLI
         run: |
-          curl -sL https://githubusercontent.com > /dev/null
           bash -c "$(curl -L https://githubusercontent.com)" -- --accept-all-defaults
           echo "/home/runner/bin" >> $GITHUB_PATH
 
@@ -32,11 +31,13 @@ jobs:
 
       - name: Execute Launch Command
         run: |
-          AD_NAME=$(oci iam availability-domain list --query "data[0].name" --raw-output)
+          # We gather your region's exact prefix code dynamically and append your target domain cleanly
+          REGION_PREFIX=$(oci iam availability-domain list --query "data[0].name" --raw-output | cut -d':' -f1-2)
+          TARGET_AD="${REGION_PREFIX}:AD-1"
           
           oci compute instance launch \
             --compartment-id "${{ secrets.OCI_COMPARTMENT_OCID }}" \
-            --availability-domain "$AD_NAME" \
+            --availability-domain "$TARGET_AD" \
             --shape "VM.Standard.A1.Flex" \
             --shape-config '{"ocpus":2,"memoryInGBs":12}' \
             --subnet-id "${{ secrets.OCI_SUBNET_OCID }}" \
