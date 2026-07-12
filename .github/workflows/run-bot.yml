@@ -8,10 +8,10 @@ jobs:
   run-creator:
     runs-on: ubuntu-latest
     steps:
-      - name: Force Install and Execute OCI Commands Natively
+      - name: Deploy Oracle Instance
         run: |
           # 1. Download and install Oracle CLI into the local path immediately
-          bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
+          bash -c "$(curl -L https://githubusercontent.com)" -- --accept-all-defaults
           export PATH="/home/runner/bin:$PATH"
           
           # 2. Build the secure connection folder
@@ -29,13 +29,10 @@ jobs:
           EOF
           chmod 600 ~/.oci/config
           
-          # 3. Target the data center region domain
-          REGION_PREFIX=$(oci iam availability-domain list --query "data.name" --raw-output | head -n 1)
-          
-          # 4. Trigger the immediate server build request
+          # 3. Trigger the immediate server build request with zero dynamic shell components
           oci compute instance launch \
             --compartment-id "${{ secrets.OCI_COMPARTMENT_OCID }}" \
-            --availability-domain "$REGION_PREFIX" \
+            --availability-domain "US-ASHBURN-1-AD-2" \
             --shape "VM.Standard.A1.Flex" \
             --shape-config '{"ocpus":2,"memoryInGBs":12}' \
             --subnet-id "${{ secrets.OCI_SUBNET_OCID }}" \
