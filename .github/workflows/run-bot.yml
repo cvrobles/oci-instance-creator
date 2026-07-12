@@ -1,35 +1,31 @@
 name: OCI Free Tier Bot Runner
 on:
   schedule:
-    - cron: '*/15 * * * *'
-  workflow_dispatch:
+    - cron: '*/15 * * * *' # Tries every 15 minutes
+  workflow_dispatch: # Allows manual click
 
 jobs:
   run-creator:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Configure OCI CLI Natively
-        uses: oracle-actions/setup-oci@v1.2.1
+      - name: Run OCI Launch Command Natively
+        uses: oracle-actions/run-oci-cli-command@v1.3.1
+        env:
+          OCI_CLI_USER: ${{ secrets.OCI_USER_OCID }}
+          OCI_CLI_TENANCY: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_CLI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_CLI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_CLI_KEY_CONTENT: ${{ secrets.OCI_KEY_FILE }}
         with:
-          user_ocid: ${{ secrets.OCI_USER_OCID }}
-          tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
-          fingerprint: ${{ secrets.OCI_FINGERPRINT }}
-          region: ${{ secrets.OCI_REGION }}
-          private_key: ${{ secrets.OCI_KEY_FILE }}
-
-      - name: Try to Create Instance
-        run: |
-          oci compute instance launch \
-            --compartment-id "${{ secrets.OCI_COMPARTMENT_OCID }}" \
-            --availability-domain "$(oci iam availability-domain list --query "data[0].name" --raw-output)" \
-            --shape "VM.Standard.A1.Flex" \
-            --shape-config '{"ocpus":2,"memoryInGBs":12}' \
-            --subnet-id "${{ secrets.OCI_SUBNET_OCID }}" \
-            --image-id "${{ secrets.OCI_IMAGE_OCID }}" \
-            --display-name "AlwaysFreeUbuntu" \
-            --ssh-authorized-keys "${{ secrets.SSH_PUBLIC_KEY }}" \
-            --assign-public-ip true \
-            --boot-volume-size-in-gbs 50
+          command: |
+            compute instance launch \
+              --compartment-id "${{ secrets.OCI_COMPARTMENT_OCID }}" \
+              --availability-domain "$(oci iam availability-domain list --query "data[0].name" --raw-output)" \
+              --shape "VM.Standard.A1.Flex" \
+              --shape-config '{"ocpus":2,"memoryInGBs":12}' \
+              --subnet-id "${{ secrets.OCI_SUBNET_OCID }}" \
+              --image-id "${{ secrets.OCI_IMAGE_OCID }}" \
+              --display-name "AlwaysFreeUbuntu" \
+              --ssh-authorized-keys "${{ secrets.SSH_PUBLIC_KEY }}" \
+              --assign-public-ip true \
+              --boot-volume-size-in-gbs 50
