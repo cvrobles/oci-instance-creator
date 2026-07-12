@@ -1,0 +1,26 @@
+name: OCI Free Tier Bot Runner
+on:
+  schedule:
+    - cron: '*/15 * * * *' # Fires automatically every 15 minutes
+  workflow_dispatch: # Forces the manual "Run workflow" button to appear
+
+jobs:
+  run-creator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Oracle Instance Creator Container
+        run: |
+          docker run --rm \
+            -e USER_OCID="${{ secrets.OCI_USER_OCID }}" \
+            -e TENANCY_OCID="${{ secrets.OCI_TENANCY_OCID }}" \
+            -e FINGERPRINT="${{ secrets.OCI_FINGERPRINT }}" \
+            -e REGION="${{ secrets.OCI_REGION }}" \
+            -e SUBNET_OCID="${{ secrets.OCI_SUBNET_OCID }}" \
+            -e IMAGE_OCID="${{ secrets.OCI_IMAGE_OCID }}" \
+            -e COMPARTMENT_OCID="${{ secrets.OCI_COMPARTMENT_OCID }}" \
+            -e OCI_KEY_CONTENT="${{ secrets.OCI_KEY_FILE }}" \
+            -e SSH_KEY="${{ secrets.SSH_PUBLIC_KEY }}" \
+            -e SHAPE="VM.Standard.A1.Flex" \
+            -e CPUS="2" \
+            -e VOLUME_SIZE="50" \
+            ghcr.io/mowirth/oci-instance-creator:latest
