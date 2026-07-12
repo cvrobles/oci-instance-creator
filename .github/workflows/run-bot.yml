@@ -1,8 +1,8 @@
 name: OCI Free Tier Bot Runner
 on:
   schedule:
-    - cron: '*/15 * * * *' # Tries every 15 minutes
-  workflow_dispatch: # Allows manual click
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 jobs:
   run-creator:
@@ -14,13 +14,15 @@ jobs:
           OCI_CLI_USER: ${{ secrets.OCI_USER_OCID }}
           OCI_CLI_TENANCY: ${{ secrets.OCI_TENANCY_OCID }}
           OCI_CLI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
-          OCI_CLI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
           OCI_CLI_KEY_CONTENT: ${{ secrets.OCI_KEY_FILE }}
         with:
+          # This forces Oracle to show the real error on your screen instead of hiding it
+          silent: false
           command: |
             compute instance launch \
               --compartment-id "${{ secrets.OCI_COMPARTMENT_OCID }}" \
-              --availability-domain "$(oci iam availability-domain list --query "data[0].name" --raw-output)" \
+              --availability-domain "$(oci iam availability-domain list --query "data.name" --raw-output | head -n 1)" \
               --shape "VM.Standard.A1.Flex" \
               --shape-config '{"ocpus":2,"memoryInGBs":12}' \
               --subnet-id "${{ secrets.OCI_SUBNET_OCID }}" \
