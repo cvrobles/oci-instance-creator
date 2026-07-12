@@ -10,7 +10,6 @@ jobs:
     steps:
       - name: Deploy Oracle Instance Creator Container
         env:
-          # This maps your secrets to secure environmental blocks BEFORE running bash
           USER_OCID: ${{ secrets.OCI_USER_OCID }}
           TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
           FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
@@ -19,10 +18,13 @@ jobs:
           IMAGE_OCID: ${{ secrets.OCI_IMAGE_OCID }}
           COMPARTMENT_OCID: ${{ secrets.OCI_COMPARTMENT_OCID }}
           SSH_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
-          # This prevents line break distortion on the API key
-          OCI_KEY_CONTENT: "${{ secrets.OCI_KEY_FILE }}"
         run: |
+          # 1. Write the multi-line key safely to a temporary file
+          echo "${{ secrets.OCI_KEY_FILE }}" > /tmp/oci_api_key.pem
+          
+          # 2. Run Docker by mounting the safe file, avoiding multiline string variables
           docker run --rm \
+            -v /tmp/oci_api_key.pem:/root/.oci/oci_api_key.pem \
             -e USER_OCID \
             -e TENANCY_OCID \
             -e FINGERPRINT \
@@ -30,7 +32,7 @@ jobs:
             -e SUBNET_OCID \
             -e IMAGE_OCID \
             -e COMPARTMENT_OCID \
-            -e OCI_KEY_CONTENT \
+            -e OCI_KEY_FILE_PATH="/root/.oci/oci_api_key.pem" \
             -e SSH_KEY \
             -e SHAPE="VM.Standard.A1.Flex" \
             -e CPUS="2" \
