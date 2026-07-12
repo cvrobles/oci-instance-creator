@@ -8,33 +8,28 @@ jobs:
   run-creator:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy Oracle Instance Creator Container
-        env:
-          USER_OCID: ${{ secrets.OCI_USER_OCID }}
-          TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
-          FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
-          REGION: ${{ secrets.OCI_REGION }}
-          SUBNET_OCID: ${{ secrets.OCI_SUBNET_OCID }}
-          IMAGE_OCID: ${{ secrets.OCI_IMAGE_OCID }}
-          COMPARTMENT_OCID: ${{ secrets.OCI_COMPARTMENT_OCID }}
-          SSH_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure OCI CLI Natively
+        uses: oracle-actions/setup-oci@v1.2.1
+        with:
+          user_ocid: ${{ secrets.OCI_USER_OCID }}
+          tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
+          fingerprint: ${{ secrets.OCI_FINGERPRINT }}
+          region: ${{ secrets.OCI_REGION }}
+          private_key: ${{ secrets.OCI_KEY_FILE }}
+
+      - name: Try to Create Instance
         run: |
-          # 1. Write the multi-line key safely to a temporary file
-          echo "${{ secrets.OCI_KEY_FILE }}" > /tmp/oci_api_key.pem
-          
-          # 2. Run Docker by mounting the safe file, avoiding multiline string variables
-          docker run --rm \
-            -v /tmp/oci_api_key.pem:/root/.oci/oci_api_key.pem \
-            -e USER_OCID \
-            -e TENANCY_OCID \
-            -e FINGERPRINT \
-            -e REGION \
-            -e SUBNET_OCID \
-            -e IMAGE_OCID \
-            -e COMPARTMENT_OCID \
-            -e OCI_KEY_FILE_PATH="/root/.oci/oci_api_key.pem" \
-            -e SSH_KEY \
-            -e SHAPE="VM.Standard.A1.Flex" \
-            -e CPUS="2" \
-            -e VOLUME_SIZE="50" \
-            ghcr.io/mowirth/oci-instance-creator:latest
+          oci compute instance launch \
+            --compartment-id "${{ secrets.OCI_COMPARTMENT_OCID }}" \
+            --availability-domain "$(oci iam availability-domain list --query "data[0].name" --raw-output)" \
+            --shape "VM.Standard.A1.Flex" \
+            --shape-config '{"ocpus":2,"memoryInGBs":12}' \
+            --subnet-id "${{ secrets.OCI_SUBNET_OCID }}" \
+            --image-id "${{ secrets.OCI_IMAGE_OCID }}" \
+            --display-name "AlwaysFreeUbuntu" \
+            --ssh-authorized-keys "${{ secrets.SSH_PUBLIC_KEY }}" \
+            --assign-public-ip true \
+            --boot-volume-size-in-gbs 50
